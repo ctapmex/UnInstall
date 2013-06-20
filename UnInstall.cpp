@@ -746,7 +746,7 @@ HANDLE WINAPI OpenPlugin(int /*OpenFrom*/, INT_PTR /*Item*/)
 #endif
 	FLI = (FarListItem *) realloc(FLI, 0);
 	p = (KeyInfo *) realloc(p, 0);
-	return INVALID_HANDLE_VALUE;
+	return NULL;
 }
 
 #ifdef FARAPI3
