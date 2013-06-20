@@ -5,7 +5,7 @@ if exist makefile set MAKEFILE=makefile
 if exist "%VS90COMNTOOLS%..\..\VC\BIN\vcvars32.bat" (
   call "%VS90COMNTOOLS%..\..\VC\BIN\vcvars32.bat"
 ) else (
-  call "C:\Program Files\Microsoft Visual Studio 9.0\VC\bin\vcvars32.bat"
+  call "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\vcvars32.bat"
 )
 
 set WIDE=1
