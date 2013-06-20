@@ -1,3 +1,8 @@
+#include "guid.hpp"
+#ifdef FARAPI3
+#include "PluginSettings.hpp"
+#endif
+
 //дополнительные описания к ключам
 const TCHAR *HelpTopics[] =
 {
@@ -94,7 +99,7 @@ struct Options
 struct KeyInfo
 {
 	TCHAR Keys[KeysCount][MAX_PATH];
-#ifdef FARAPI18
+#if defined FARAPI18 || defined FARAPI3
 	TCHAR ListItem[MAX_PATH];
 #endif
 	bool Avail[KeysCount];
@@ -298,36 +303,60 @@ bool FillReg(KeyInfo& key, TCHAR* Buf, RegKeyPath& RegKey, REGSAM RegView)
 #define DM_GETDLGITEMSHORT DM_GETDLGITEM
 #endif
 
+#ifdef FARAPI3
+INT_PTR WINAPI EntryDlgProc(HANDLE hDlg,intptr_t Msg,intptr_t Param1,void* Param2)
+#else
 LONG_PTR WINAPI EntryDlgProc(HANDLE hDlg,int Msg,int Param1,LONG_PTR Param2)
+#endif
 {
 	switch(Msg)
 	{
 		case DN_INITDIALOG:
 		{
 			FarDialogItem item;
-
+#ifdef FARAPI3
+			for(unsigned id = 0; Info.SendDlgMessage(hDlg, DM_GETDLGITEMSHORT, id, &item); id++)
+#else
 			for(unsigned id = 0; Info.SendDlgMessage(hDlg, DM_GETDLGITEMSHORT, id, reinterpret_cast<LONG_PTR>(&item)); id++)
+#endif
 			{
 				if(item.Type == DI_EDIT)
 					Info.SendDlgMessage(hDlg, DM_EDITUNCHANGEDFLAG, id, 0);
 			}
 		}
 		break;
+#ifdef FARAPI3
+		case DN_CONTROLINPUT:
+		{
+			INPUT_RECORD* record=(INPUT_RECORD *)Param2;
+			if((record->EventType==KEY_EVENT)&&((record->Event.KeyEvent.wVirtualKeyCode == VK_PRIOR) || (record->Event.KeyEvent.wVirtualKeyCode == VK_NEXT)))
+#else
 		case DN_KEY:
 		{
 			if((Param2 == KEY_PGUP) || (Param2 == KEY_PGDN))
+#endif
 			{
 				TCHAR sMacro[32];
-
+#ifdef FARAPI3
+				if(record->Event.KeyEvent.wVirtualKeyCode == VK_PRIOR)
+#else
 				if(Param2 == KEY_PGUP)
+#endif
 					StringCchCopy(sMacro, ARRAYSIZE(sMacro), _T("Esc Up F3"));
 				else
 					StringCchCopy(sMacro, ARRAYSIZE(sMacro), _T("Esc Down F3"));
-
+#ifdef FARAPI3
+				MacroSendMacroText msmt;
+				msmt.StructSize= sizeof(MacroSendMacroText);
+				msmt.SequenceText=sMacro;
+				msmt.Flags=KMFLAGS_DISABLEOUTPUT;
+				Info.MacroControl(&MainGuid,MCTL_SENDSTRING, nullptr,&msmt);
+#else
 				ActlKeyMacro m = {MCMD_POSTMACROSTRING};
 				m.Param.PlainText.SequenceText = sMacro;
 				m.Param.PlainText.Flags = KSFLAGS_DISABLEOUTPUT;
 				Info.AdvControl(Info.ModuleNumber, ACTL_KEYMACRO, &m);
+#endif
 				return TRUE;
 			}
 		}
@@ -338,8 +367,13 @@ LONG_PTR WINAPI EntryDlgProc(HANDLE hDlg,int Msg,int Param1,LONG_PTR Param2)
 }
 
 //заполнение пункта диалога
-void FillDialog(FarDialogItem & DialogItem, int Type, int X1, int Y1, int X2, int Y2,
-                int Flags, int nData)
+void FillDialog(FarDialogItem & DialogItem, 
+#ifdef FARAPI3
+	FARDIALOGITEMTYPES Type,
+#else
+	int Type, 
+#endif
+	int X1, int Y1, int X2, int Y2, int Flags, int nData)
 {
 	const TCHAR* s = nData != -1 ? GetMsg(nData) : _T("");
 #ifdef FARAPI17
@@ -348,6 +382,9 @@ void FillDialog(FarDialogItem & DialogItem, int Type, int X1, int Y1, int X2, in
 #ifdef FARAPI18
 	DialogItem.PtrData = s;
 #endif
+#ifdef FARAPI3
+	DialogItem.Data = s;
+#endif
 	DialogItem.X1 = X1;
 	DialogItem.X2 = X2;
 	DialogItem.Y1 = Y1;
@@ -355,13 +392,19 @@ void FillDialog(FarDialogItem & DialogItem, int Type, int X1, int Y1, int X2, in
 	DialogItem.Flags = Flags;
 	DialogItem.Type = Type;
 	DialogItem.Selected = 0;
+#ifndef FARAPI3
 	DialogItem.DefaultButton = 0;
 	DialogItem.Focus = 0;
+#endif
 
 	if(Type == DI_BUTTON)
 	{
+#ifdef FARAPI3
+		DialogItem.Flags |=DIF_FOCUS | DIF_DEFAULTBUTTON;
+#else
 		DialogItem.DefaultButton = 1;
 		DialogItem.Focus = 1;
+#endif
 	}
 }
 
@@ -427,6 +470,9 @@ void DisplayEntry(int Sel)
 #ifdef FARAPI18
 			DialogItems[idx].PtrData = p[Sel].Keys[i];
 #endif
+#ifdef FARAPI3
+			DialogItems[idx].Data = p[Sel].Keys[i];
+#endif
 			idx++;
 		}
 	}
@@ -437,6 +483,16 @@ void DisplayEntry(int Sel)
 #endif
 #ifdef FARAPI18
 	HANDLE h_dlg = Info.DialogInit(Info.ModuleNumber, -1, -1, sx + 8, sy + 4, _T("UninstallEntry"), DialogItems, di_cnt, 0, 0, EntryDlgProc, 0);
+
+	if(h_dlg != INVALID_HANDLE_VALUE)
+	{
+		Info.DialogRun(h_dlg);
+		Info.DialogFree(h_dlg);
+	}
+
+#endif
+#ifdef FARAPI3
+	HANDLE h_dlg = Info.DialogInit(&MainGuid,&UninstallEntryGuid, -1, -1, sx + 8, sy + 4, _T("UninstallEntry"), DialogItems, di_cnt, 0, 0, EntryDlgProc, 0);
 
 	if(h_dlg != INVALID_HANDLE_VALUE)
 	{
@@ -554,7 +610,7 @@ BOOL IsFilePath(LPCWSTR asFilePath, bool abCheckFileExist)
 		if (hFile == INVALID_HANDLE_VALUE)
 		{
 			dwErr = GetLastError();
-			if (dwErr = ERROR_FILE_NOT_FOUND)
+			if (dwErr == ERROR_FILE_NOT_FOUND)
 				return FALSE;
 		}
 		BY_HANDLE_FILE_INFORMATION hfi = {};
@@ -632,10 +688,13 @@ BOOL FirstArg(LPCTSTR asCmdLine, TCHAR* rsArg/*[MAX_PATH+1]*/, LPCTSTR* rsNextAr
 
 int EntryMenu(int Sel, int& Action, bool& LowPriority, int nChkCount = 0)
 {
-#ifdef FARAPI18
+#if defined FARAPI18 || defined FARAPI3
 #define SETITEM(i,s) items[i].Text = GetMsg(s)
 #else
 #define SETITEM(i,s) items[i].Text.TextPtr = GetMsg(s); items[i].Flags |= MIF_USETEXTPTR
+#endif
+#ifdef FARAPI3
+#define FarMenuItemEx FarMenuItem
 #endif
 	FarMenuItemEx items[6]; memset(items, 0, sizeof(items));
 	SETITEM(Action_UninstallWait, MActionUninstallWait);
@@ -666,9 +725,15 @@ int EntryMenu(int Sel, int& Action, bool& LowPriority, int nChkCount = 0)
 		items[Action_RepairWait].Flags |= MIF_DISABLE;
 	}
 
+#ifdef FARAPI3
+	intptr_t iRc;
+	intptr_t BreakCode;
+	struct FarKey BreakKeys[1]= {VK_F7,0};
+#else
 	int iRc;
 	int BreakCode;
 	int BreakKeys[2]= {VK_F7,0};
+#endif
 	TCHAR szMenuTitle[MAX_PATH];
 
 	if(nChkCount > 1)
@@ -678,9 +743,15 @@ int EntryMenu(int Sel, int& Action, bool& LowPriority, int nChkCount = 0)
 
 	while(true)
 	{
+#ifdef FARAPI3
+		iRc = Info.Menu(&MainGuid,&ActionMenu, -1,-1,0, FMENU_WRAPMODE, szMenuTitle,
+		                GetMsg(LowPriority ? MMenuBottomLine2 : MMenuBottomLine1),
+		                _T("ActionMenu"), BreakKeys, &BreakCode, (struct FarMenuItem *)items, ARRAYSIZE(items));
+#else
 		iRc = Info.Menu(Info.ModuleNumber, -1,-1,0, FMENU_USEEXT|FMENU_WRAPMODE, szMenuTitle,
 		                GetMsg(LowPriority ? MMenuBottomLine2 : MMenuBottomLine1),
 		                _T("ActionMenu"), BreakKeys, &BreakCode, (struct FarMenuItem *)items, ARRAYSIZE(items));
+#endif
 
 		if(iRc < 0)
 			return -1;
@@ -972,12 +1043,20 @@ bool DeleteEntry(int Sel)
 }
 
 //сравнить строки
+#ifdef FARAPI3
+int WINAPI CompareEntries(const void* item1, const void* item2, void* userparam)
+#else
 int __cdecl CompareEntries(const void* item1, const void* item2)
+#endif
 {
 	return FSF.LStricmp(reinterpret_cast<const KeyInfo*>(item1)->Keys[DisplayName], reinterpret_cast<const KeyInfo*>(item2)->Keys[DisplayName]);
 }
 //сравнить даты
+#ifdef FARAPI3
+int WINAPI CompareEntriesDate(const void* item1, const void* item2, void* userparam)
+#else
 int __cdecl CompareEntriesDate(const void* item1, const void* item2)
+#endif
 {
 	if(reinterpret_cast<const KeyInfo*>(item1)->InstDateN < reinterpret_cast<const KeyInfo*>(item2)->InstDateN)
 		return 1;
@@ -985,7 +1064,11 @@ int __cdecl CompareEntriesDate(const void* item1, const void* item2)
 	if(reinterpret_cast<const KeyInfo*>(item1)->InstDateN > reinterpret_cast<const KeyInfo*>(item2)->InstDateN)
 		return -1;
 
+#ifdef FARAPI3
+	return CompareEntries(item1, item2, userparam);
+#else
 	return CompareEntries(item1, item2);
+#endif
 }
 
 #define JUMPREALLOC 50
@@ -1067,15 +1150,25 @@ void UpDateInfo(void)
 
 	p = (KeyInfo *) realloc(p, sizeof(KeyInfo) * nCount);
 
+#ifdef FARAPI3
+	if(Opt.SortByDate)
+		FSF.qsort(p, nCount, sizeof(KeyInfo), CompareEntriesDate, nullptr);
+	else
+		FSF.qsort(p, nCount, sizeof(KeyInfo), CompareEntries, nullptr);
+#else
 	if(Opt.SortByDate)
 		FSF.qsort(p, nCount, sizeof(KeyInfo), CompareEntriesDate);
 	else
 		FSF.qsort(p, nCount, sizeof(KeyInfo), CompareEntries);
+#endif
 
 	FLI = (FarListItem *) realloc(FLI, sizeof(FarListItem) * nCount);
 	ZeroMemory(FLI, sizeof(FarListItem) * nCount);
 	FL.ItemsNumber = nCount;
 	FL.Items = FLI;
+#ifdef FARAPI3
+	FL.StructSize = sizeof (FarList);
+#endif
 	const TCHAR* sx86 = GetMsg(MListHKLMx86);
 	const TCHAR* sx64 = GetMsg(MListHKLMx64);
 	const TCHAR* sHKLM = GetMsg(MListHKLM);
@@ -1096,7 +1189,7 @@ void UpDateInfo(void)
 #ifdef FARAPI17
 		size_t MaxSize = ARRAYSIZE(FLI[i].Text);
 #endif
-#ifdef FARAPI18
+#if defined FARAPI18 || defined FARAPI3
 		size_t MaxSize = ARRAYSIZE(p[i].ListItem);
 		FLI[i].Text = p[i].ListItem;
 #endif
@@ -1147,6 +1240,46 @@ void UpDateInfo(void)
 
 void ReadRegistry()
 {
+#ifdef FARAPI3
+	PluginSettings settings(MainGuid,Info.SettingsControl);
+
+	Opt.WhereWork=settings.Get(0,L"WhereWork",3);
+	if((Opt.WhereWork<0) || (Opt.WhereWork>3))
+			Opt.WhereWork=3;
+
+	settings.Set(0,L"WhereWork",Opt.WhereWork);
+
+	Opt.EnterAction=settings.Get(0,L"EnterAction",Action_Menu);
+	if((Opt.EnterAction<0) || (Opt.EnterAction>Action_Menu))
+			Opt.EnterAction=Action_Menu;
+
+	settings.Set(0,L"EnterAction",Opt.EnterAction);
+
+	Opt.ShiftEnterAction=settings.Get(0,L"ShiftEnterAction",Action_UninstallWait);
+	if((Opt.ShiftEnterAction<0) || (Opt.EnterAction>Action_Menu))
+			Opt.ShiftEnterAction=Action_Menu;
+
+	settings.Set(0,L"ShiftEnterAction",Opt.ShiftEnterAction);
+
+	Opt.UseElevation=settings.Get(0,L"UseElevation",1);
+	if((Opt.UseElevation<0) || (Opt.UseElevation>1))
+			Opt.UseElevation=1;
+
+	settings.Set(0,L"UseElevation",Opt.UseElevation);
+
+	Opt.RunLowPriority=settings.Get(0,L"RunLowPriority",0);
+	if((Opt.RunLowPriority<0) || (Opt.RunLowPriority>1))
+			Opt.RunLowPriority=0;
+
+	settings.Set(0,L"RunLowPriority",Opt.RunLowPriority);
+
+	Opt.ForceMsiUse=settings.Get(0,L"ForceMsiUse",0);
+	if((Opt.ForceMsiUse<0) || (Opt.ForceMsiUse>1))
+			Opt.ForceMsiUse=0;
+
+	settings.Set(0,L"ForceMsiUse",Opt.ForceMsiUse);
+	Opt.SortByDate = false;
+#else
 	//TechInfo
 	if(GetRegKey(HKCU,_T(""),_T("WhereWork"),Opt.WhereWork,3))
 		if((Opt.WhereWork<0) || (Opt.WhereWork>3))
@@ -1184,4 +1317,5 @@ void ReadRegistry()
 
 	SetRegKey(HKCU,_T(""),_T("ForceMsiUse"),(DWORD) Opt.ForceMsiUse);
 	Opt.SortByDate = false;
+#endif
 }

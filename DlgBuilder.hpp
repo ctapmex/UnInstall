@@ -201,7 +201,11 @@ class DialogBuilderBase
 			}
 		}
 
+#ifdef FARAPI3
+		T* AddDialogItem(FARDIALOGITEMTYPES Type, const TCHAR *Text)
+#else
 		T* AddDialogItem(int Type, const TCHAR *Text)
+#endif
 		{
 			if(DialogItemsCount == DialogItemsAllocated)
 			{
@@ -528,8 +532,11 @@ class DialogBuilderBase
 		T* AddComboBox(int Width, FarList* ListItems, int *Value, DWORD AddFlags=DIF_DROPDOWNLIST)
 		{
 			T *Item = AddDialogItem(DI_COMBOBOX, nullptr);
-
+#ifdef FARAPI3
+			for(size_t i = 0; i < ListItems->ItemsNumber; i++)
+#else
 			for(int i = 0; i < ListItems->ItemsNumber; i++)
+#endif
 			{
 				if(i == *Value)
 					ListItems->Items[i].Flags |= LIF_SELECTED;
@@ -680,7 +687,11 @@ class DialogBuilderBase
 			AddSeparator();
 			T *OKButton = AddDialogItem(DI_BUTTON, GetLangString(OKMessageId));
 			OKButton->Flags = DIF_CENTERGROUP;
+#ifdef FARAPI3
+			OKButton->Flags |= DIF_DEFAULTBUTTON;
+#else
 			OKButton->DefaultButton = TRUE;
+#endif
 			OKButton->Y1 = OKButton->Y2 = NextY++;
 			OKButtonID = DialogItemsCount-1;
 			T *CancelButton = AddDialogItem(DI_BUTTON, GetLangString(CancelMessageId));
@@ -933,6 +944,10 @@ class PluginDialogBuilder: public DialogBuilderBase<FarDialogItem>
 		const PluginStartupInfo &Info;
 		HANDLE DialogHandle;
 		const TCHAR *HelpTopic;
+#ifdef FARAPI3
+		GUID PluginId;
+		GUID Id;
+#endif
 
 		virtual void InitDialogItem(FarDialogItem *Item, const TCHAR *Text)
 		{
@@ -941,7 +956,11 @@ class PluginDialogBuilder: public DialogBuilderBase<FarDialogItem>
 			if(Text)
 			{
 #ifdef UNICODE
+#ifdef FARAPI3
+				Item->Data = Text;
+#else
 				Item->PtrData = Text;
+#endif
 #else
 				lstrcpyn(Item->Data, Text, sizeof(Item->Data)/sizeof(Item->Data[0]));
 #endif
@@ -951,7 +970,11 @@ class PluginDialogBuilder: public DialogBuilderBase<FarDialogItem>
 		virtual int TextWidth(const FarDialogItem &Item)
 		{
 #ifdef UNICODE
+#ifdef FARAPI3
+			return lstrlen(Item.Data);
+#else
 			return lstrlen(Item.PtrData);
+#endif
 #else
 			return lstrlen(Item.Data);
 #endif
@@ -959,7 +982,11 @@ class PluginDialogBuilder: public DialogBuilderBase<FarDialogItem>
 
 		virtual const TCHAR* GetLangString(int MessageID)
 		{
+#ifdef FARAPI3
+			return Info.GetMsg(&PluginId, MessageID);
+#else
 			return Info.GetMsg(Info.ModuleNumber, MessageID);
+#endif
 		}
 
 		virtual int DoShowDialog()
@@ -967,8 +994,13 @@ class PluginDialogBuilder: public DialogBuilderBase<FarDialogItem>
 			int Width = DialogItems [0].X2+4;
 			int Height = DialogItems [0].Y2+2;
 #ifdef UNICODE
+#ifdef FARAPI3
+			DialogHandle = Info.DialogInit(&PluginId, &Id, -1, -1, Width, Height,
+			                               HelpTopic, DialogItems, DialogItemsCount, 0, DialogFlags, nullptr, 0);
+#else
 			DialogHandle = Info.DialogInit(Info.ModuleNumber, -1, -1, Width, Height,
 			                               HelpTopic, DialogItems, DialogItemsCount, 0, DialogFlags, nullptr, 0);
+#endif
 			return Info.DialogRun(DialogHandle);
 #else
 			return Info.DialogEx(Info.ModuleNumber, -1, -1, Width, Height,
@@ -1004,8 +1036,13 @@ class PluginDialogBuilder: public DialogBuilderBase<FarDialogItem>
 		}
 
 	public:
+#ifdef FARAPI3
+		PluginDialogBuilder(const PluginStartupInfo &aInfo, const GUID &aPluginId, const GUID &aId, int TitleMessageID, const TCHAR *aHelpTopic)
+			: DialogFlags(0), Info(aInfo), DialogHandle(NULL), HelpTopic(aHelpTopic),PluginId(aPluginId), Id(aId)
+#else
 		PluginDialogBuilder(const PluginStartupInfo &aInfo, int TitleMessageID, const TCHAR *aHelpTopic)
 			: DialogFlags(0), Info(aInfo), DialogHandle(NULL), HelpTopic(aHelpTopic)
+#endif
 		{
 			AddBorder(GetLangString(TitleMessageID));
 		}
@@ -1043,7 +1080,11 @@ class PluginDialogBuilder: public DialogBuilderBase<FarDialogItem>
 			PluginIntEditFieldBinding *Binding;
 #ifdef UNICODE
 			Binding = new PluginIntEditFieldBinding(Info, &DialogHandle, DialogItemsCount-1, Value, Width);
+#ifdef FARAPI3
+			Item->Data = Binding->GetBuffer();
+#else
 			Item->PtrData = Binding->GetBuffer();
+#endif
 #else
 			Binding = new PluginIntEditFieldBinding(Info, Value, Width);
 			Info.FSF->itoa(*Value, (TCHAR *) Item->Data, 10);

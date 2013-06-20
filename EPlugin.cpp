@@ -1,9 +1,15 @@
+#include "guid.hpp"
+
 static struct PluginStartupInfo Info;
 static struct FarStandardFunctions FSF;
 
 const TCHAR* GetMsg(int MsgId)
 {
+#ifdef FARAPI3
+	return(Info.GetMsg(&MainGuid,MsgId));
+#else
 	return(Info.GetMsg(Info.ModuleNumber,MsgId));
+#endif
 }
 
 void ShowHelp(const TCHAR * HelpTopic)
@@ -13,9 +19,15 @@ void ShowHelp(const TCHAR * HelpTopic)
 
 int EMessage(const TCHAR * const * s, int nType, int n)
 {
+#ifdef FARAPI3
+	return Info.Message(&MainGuid, &AnyMessage, FMSG_ALLINONE|nType, NULL, s,
+	                    0, //этот параметр при FMSG_ALLINONE игнорируется
+	                    n); //количество кнопок
+#else
 	return Info.Message(Info.ModuleNumber, FMSG_ALLINONE|nType, NULL, s,
-	                    0, //нв®в Ї а ¬Ґва ЇаЁ FMSG_ALLINONE ЁЈ­®аЁагҐвбп
-	                    n); //Є®«ЁзҐбвў® Є­®Ї®Є
+	                  0, //этот параметр при FMSG_ALLINONE игнорируется
+	                  n); //количество кнопок
+#endif
 }
 
 int DrawMessage(int nType, int n, char *msg, ...)
@@ -28,11 +40,11 @@ int DrawMessage(int nType, int n, char *msg, ...)
 
 	while((arg = va_arg(ap,TCHAR*))!= 0)
 	{
-		total += lstrlen(arg) + 1; //¬л ҐйҐ Ўг¤Ґ¬ § ЇЁблў вм бЁ¬ў®« ЇҐаҐў®¤  бва®ЄЁ
+		total += lstrlen(arg) + 1; //мы еще будем записывать символ перевода строки
 	}
 
 	va_end(ap);
-	total--; //Ї®б«Ґ¤­Ё© §­ Є ЇҐаҐў®¤  бва®ЄЁ ¬л б®ваҐ¬
+	total--; //последний знак перевода строки мы сотрем
 	string = (TCHAR *) realloc(string, sizeof(TCHAR)*(total + 1));
 	string[0]=_T('\0');
 	va_start(ap, msg);

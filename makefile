@@ -10,6 +10,7 @@ RCFLAGS = -nologo
 !if "$(CPU)" == "AMD64" || "$(PLATFORM)" == "x64"
 PLATFORM = x64
 LIBSUFFIX = 64
+LINK_MACHINE = /MACHINE:X64
 !ifdef WIDE
 DLLSUFFIX = W64
 !else
@@ -18,6 +19,7 @@ DLLSUFFIX = A64
 RCFLAGS = $(RCFLAGS) -Dx64
 !else
 PLATFORM = x86
+LINK_MACHINE = /MACHINE:X86
 !ifdef WIDE
 DLLSUFFIX = W
 !else
@@ -33,25 +35,30 @@ MODULEFULL=$(MODULE)$(DLLSUFFIX)
 OUTDIR = ..\Release
 DEFINES = $(DEFINES) -DNDEBUG
 CPPFLAGS = $(CPPFLAGS) -O1 -GL -MT
-LINKFLAGS = $(LINKFLAGS) -opt:ref -opt:icf -LTCG /pdb:".\$(OUTDIR)\$(MODULE)$(DLLSUFFIX).pdb"
+LINKFLAGS = $(LINKFLAGS) $(LINK_MACHINE) -opt:ref -opt:icf -LTCG /pdb:".\$(OUTDIR)\$(MODULE)$(DLLSUFFIX).pdb"
 !else
 OUTDIR = ..\Debug
 DEFINES = $(DEFINES) -DDEBUG
 CPPFLAGS = $(CPPFLAGS) -Od -RTC1 -MTd
-LINKFLAGS = $(LINKFLAGS) -fixed:no /pdb:".\$(OUTDIR)\$(MODULE)$(DLLSUFFIX).pdb"
+LINKFLAGS = $(LINKFLAGS) $(LINK_MACHINE) -fixed:no /pdb:".\$(OUTDIR)\$(MODULE)$(DLLSUFFIX).pdb"
 LIBSUFFIX=$(LIBSUFFIX)d
 !endif
 
-!ifdef OLDFAR
+!ifdef FAR1
 FARSDK = farsdk\ansi
 DEFFILE = UnInstall.def
 DEFINES = $(DEFINES) -DFARAPI17
 FARBRANCH = 1
-!else
+!elseifdef FAR2
 FARSDK = farsdk\unicode
 DEFFILE = UnInstallW.def
 DEFINES = $(DEFINES) -DFARAPI18 -DUNICODE -D_UNICODE
 FARBRANCH = 2
+!else
+FARSDK = farsdk\unicode3
+DEFFILE = UnInstallW3.def
+DEFINES = $(DEFINES) -DFARAPI3 -DUNICODE -D_UNICODE
+FARBRANCH = 3
 !endif
 
 OUTDIR = $(OUTDIR).$(PLATFORM).$(FARBRANCH)
@@ -109,7 +116,7 @@ $(OUTDIR)\File_ID.diz.1: project.ini File_ID.diz
 $(OUTDIR)\File_ID.diz.2: $(OUTDIR)\far.ini $(OUTDIR)\File_ID.diz.1
   $(PREPROC)
 
-!ifdef OLDFAR
+!ifdef FAR1
 CONVCP = $(TOOLSDIR)\convcp $** $@ 866
 !else
 CONVCP = copy $** $@
@@ -148,7 +155,7 @@ $(OUTDIR):
 
 
 DISTRIB = $(OUTDIR)\$(MODULE)_$(VER_MAJOR).$(VER_MINOR).$(VER_PATCH)
-!ifndef OLDFAR
+!ifndef FAR1
 DISTRIB = $(DISTRIB)_uni
 !endif
 DISTRIB_FILES = .\$(OUTDIR)\$(MODULE)$(DLLSUFFIX).dll .\$(OUTDIR)\$(MODULE)$(DLLSUFFIX).map .\$(OUTDIR)\UnInstall_Eng.lng .\$(OUTDIR)\UnInstall_Rus.lng .\$(OUTDIR)\UnInstall_Eng.hlf .\$(OUTDIR)\UnInstall_Rus.hlf .\$(OUTDIR)\File_ID.diz .\$(OUTDIR)\ReadMe.Rus.txt .\$(OUTDIR)\WhatsNew.Rus.txt .\TechInfo.Rus.reg
