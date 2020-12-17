@@ -63,7 +63,7 @@ void WINAPI GetGlobalInfoW(struct GlobalInfo *Info)
 	Info->StructSize = sizeof(GlobalInfo);
 	Info->MinFarVersion = FARMANAGERVERSION;
 
-	Info->Version = 	MAKEFARVERSION(1,10,15,0,VS_RELEASE);
+	Info->Version = 	MAKEFARVERSION(1,10,16,0,VS_RELEASE);
 	Info->Guid = MainGuid;
 	Info->Title = L"UnInstall";
 	Info->Description = L"UnInstall";
@@ -182,7 +182,7 @@ static LONG_PTR WINAPI DlgProc(HANDLE hDlg,int Msg,int Param1,LONG_PTR Param2)
 
 			if(OldPos >= 0 && OldPos < nCount)
 			{
-				if(!*Filter || strstri(p[OldPos].Keys[DisplayName],Filter))  //áåç ó÷åòà ðåãèñòðà â OEM êîäèðîâêå
+				if(!*Filter || strstri(p[OldPos].Keys[DisplayName],Filter))  //Ã¡Ã¥Ã§ Ã³Ã·Ã¥Ã²Ã  Ã°Ã¥Ã£Ã¨Ã±Ã²Ã°Ã  Ã¢ OEM ÃªÃ®Ã¤Ã¨Ã°Ã®Ã¢ÃªÃ¥
 					NewPos = OldPos;
 			}
 
@@ -195,7 +195,7 @@ static LONG_PTR WINAPI DlgProc(HANDLE hDlg,int Msg,int Param1,LONG_PTR Param2)
 				else
 					Find = DispName;
 
-				if(Find != nullptr)  //áåç ó÷åòà ðåãèñòðà â OEM êîäèðîâêå
+				if(Find != nullptr)  //Ã¡Ã¥Ã§ Ã³Ã·Ã¥Ã²Ã  Ã°Ã¥Ã£Ã¨Ã±Ã²Ã°Ã  Ã¢ OEM ÃªÃ®Ã¤Ã¨Ã°Ã®Ã¢ÃªÃ¥
 				{
 					FLI[i].Flags &= ~LIF_HIDDEN;
 
@@ -211,7 +211,7 @@ static LONG_PTR WINAPI DlgProc(HANDLE hDlg,int Msg,int Param1,LONG_PTR Param2)
 						}
 					}
 
-					//áåç ó÷åòà ðåãèñòðà - à êîäèðîâêà ANSI
+					//Ã¡Ã¥Ã§ Ã³Ã·Ã¥Ã²Ã  Ã°Ã¥Ã£Ã¨Ã±Ã²Ã°Ã  - Ã  ÃªÃ®Ã¤Ã¨Ã°Ã®Ã¢ÃªÃ  ANSI
 					if(NewPos == -1 && Find == DispName)
 						NewPos = i;
 
@@ -223,7 +223,7 @@ static LONG_PTR WINAPI DlgProc(HANDLE hDlg,int Msg,int Param1,LONG_PTR Param2)
 
 			if(Param1 == 0 && Param2)
 			{
-				// Ñíÿòèå èëè óñòàíîâêà ïîìåòêè (Ins)
+				// Ã‘Ã­Ã¿Ã²Ã¨Ã¥ Ã¨Ã«Ã¨ Ã³Ã±Ã²Ã Ã­Ã®Ã¢ÃªÃ  Ã¯Ã®Ã¬Ã¥Ã²ÃªÃ¨ (Ins)
 #ifdef FARAPI3
 				if(*(int*)Param2 == 1)
 #else
@@ -240,7 +240,7 @@ static LONG_PTR WINAPI DlgProc(HANDLE hDlg,int Msg,int Param1,LONG_PTR Param2)
 
 					NewPos = OldPos;
 				}
-				// Ñíÿòèå èëè óñòàíîâêà ïîìåòêè (RClick)
+				// Ã‘Ã­Ã¿Ã²Ã¨Ã¥ Ã¨Ã«Ã¨ Ã³Ã±Ã²Ã Ã­Ã®Ã¢ÃªÃ  Ã¯Ã®Ã¬Ã¥Ã²ÃªÃ¨ (RClick)
 #ifdef FARAPI3
 				else if(*(int*)Param2  == 2)
 #else
@@ -293,11 +293,11 @@ static LONG_PTR WINAPI DlgProc(HANDLE hDlg,int Msg,int Param1,LONG_PTR Param2)
 #else
 			ListTitle.BottomLen = lstrlen(GetMsg(MBottomLine));
 #endif
-			//ïîäñòðàèâàåìñÿ ïîä ðàçìåðû êîíñîëè
+			//Ã¯Ã®Ã¤Ã±Ã²Ã°Ã Ã¨Ã¢Ã Ã¥Ã¬Ã±Ã¿ Ã¯Ã®Ã¤ Ã°Ã Ã§Ã¬Ã¥Ã°Ã» ÃªÃ®Ã­Ã±Ã®Ã«Ã¨
 			Info.SendDlgMessage(hDlg,DM_ENABLEREDRAW,FALSE,0);
 			ResizeDialog(hDlg);
 			Info.SendDlgMessage(hDlg,DM_ENABLEREDRAW,TRUE,0);
-			//çàïîëíÿåì äèàëîã
+			//Ã§Ã Ã¯Ã®Ã«Ã­Ã¿Ã¥Ã¬ Ã¤Ã¨Ã Ã«Ã®Ã£
 			Info.SendDlgMessage(hDlg,DMU_UPDATE,1,0);
 		}
 		break;
@@ -402,7 +402,7 @@ static LONG_PTR WINAPI DlgProc(HANDLE hDlg,int Msg,int Param1,LONG_PTR Param2)
 					Configure(0);
 				}
 				return TRUE;
-#ifdef FARAPI3 //äëÿ far3 áóäåò â default.
+#ifdef FARAPI3 //Ã¤Ã«Ã¿ far3 Ã¡Ã³Ã¤Ã¥Ã² Ã¢ default.
 #else
 			case KEY_CTRLR:
 				{
@@ -462,7 +462,7 @@ static LONG_PTR WINAPI DlgProc(HANDLE hDlg,int Msg,int Param1,LONG_PTR Param2)
 #endif
 							bool LowPriority = (Opt.RunLowPriority!=0);
 
-							// Îáÿçàòåëüíî îæèäàíèå - äâà èíñòàëëÿòîðà ñðàçó íåäîïóñêàþòñÿ
+							// ÃŽÃ¡Ã¿Ã§Ã Ã²Ã¥Ã«Ã¼Ã­Ã® Ã®Ã¦Ã¨Ã¤Ã Ã­Ã¨Ã¥ - Ã¤Ã¢Ã  Ã¨Ã­Ã±Ã²Ã Ã«Ã«Ã¿Ã²Ã®Ã°Ã  Ã±Ã°Ã Ã§Ã³ Ã­Ã¥Ã¤Ã®Ã¯Ã³Ã±ÃªÃ Ã¾Ã²Ã±Ã¿
 							if(liAction == Action_Menu)
 							{
 								if(EntryMenu(0, liAction, LowPriority, liSelected) < 0)
@@ -492,7 +492,7 @@ static LONG_PTR WINAPI DlgProc(HANDLE hDlg,int Msg,int Param1,LONG_PTR Param2)
 								int li = ExecuteEntry(pos, liAction, LowPriority);
 
 								if(li == -1)
-									break; // îòìåíà
+									break; // Ã®Ã²Ã¬Ã¥Ã­Ã 
 
 								if(li == 1)
 									liChanged = 1;
